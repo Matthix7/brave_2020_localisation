@@ -137,13 +137,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/brave_guerledan_2020_node.cpp)
 
-
-
-
-
-
-
-#add_executable(listeningEncoder src/listeningEncoder.cpp)
+add_executable(imageAcquisition src/Artificial_Vision/imageAcquisition.cpp)
 
 
 
@@ -164,18 +158,7 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-
-
-
-
-
-
-
-#target_link_libraries(listeningEncoders ${catkin_LIBRARIES})
-#####  AJOUTER LES EXEC C++  ci-dessus
-
-
-
+target_link_libraries(imageAcquisition ${catkin_LIBRARIES})
 
 
 
