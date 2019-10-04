@@ -10,6 +10,7 @@ project(brave_guerledan_2020)
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
+  std_msgs
   roscpp
   rospy
 )
@@ -136,6 +137,18 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/brave_guerledan_2020_node.cpp)
 
+
+
+
+
+
+
+#add_executable(listeningEncoder src/listeningEncoder.cpp)
+
+
+
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -150,6 +163,22 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+
+
+
+
+
+
+
+#target_link_libraries(listeningEncoders ${catkin_LIBRARIES})
+#####  AJOUTER LES EXEC C++  ci-dessus
+
+
+
+
+
+
 
 #############
 ## Install ##
