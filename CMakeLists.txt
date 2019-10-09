@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(brave_guerledan_2020)
+project(brave_2020_localisation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -137,7 +137,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/brave_guerledan_2020_node.cpp)
 
-add_executable(testGoPro src/Artificial_Vision/testGoPro.cpp)
+#add_executable(testGoPro src/Artificial_Vision/testGoPro.cpp)
 
 
 
@@ -158,7 +158,7 @@ add_executable(testGoPro src/Artificial_Vision/testGoPro.cpp)
 #   ${catkin_LIBRARIES}
 # )
 
-target_link_libraries(testGoPro ${catkin_LIBRARIES})
+#target_link_libraries(testGoPro ${catkin_LIBRARIES})
 
 
 
