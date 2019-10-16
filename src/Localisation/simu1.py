@@ -65,10 +65,7 @@ def approxPos1(speed, heading, dHeading, bearing, dBearing, landmark):
 #    print(B)
     C = array([[cos(heading+bearing)], [sin(heading+bearing)]])
     
-    if det(B) != 0:
-        return matmul(matmul(A,B), C)
-    else:
-        return None
+    return matmul(matmul(A,B), C)
     
     
 ####################################################################

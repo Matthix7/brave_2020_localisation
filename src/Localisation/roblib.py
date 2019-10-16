@@ -66,7 +66,27 @@ def draw_arrow(x,y,theta,L,col):
     M=np.append(M1,[[1,1,1,1,1]],axis=0)
     R=np.array([[cos(theta),-sin(theta),x],[sin(theta),cos(theta),y],[0,0,1]])
     plot2D(np.matmul(R, M),col)
-
+    
+    
+def draw_ellipse(c,Gamma,Eta,ax,col): # Gaussian confidence ellipse with artist
+    #draw_ellipse(array([[1],[2]]),eye(2),0.9,ax,[1,0.8-0.3*i,0.8-0.3*i])
+    if (norm(Gamma)==0):
+        Gamma=Gamma+0.001*eye(len(Gamma[1,:]))
+    A=sqrtm(-2*log(1-Eta)*Gamma)    
+    w, v = eig(A)    
+    v1=array([[v[0,0]],[v[1,0]]])
+    v2=array([[v[0,1]],[v[1,1]]])        
+    f1=matmul(A, v1)
+    f2=matmul(A, v2)      
+    Phi=(arctan2(v1 [1,0],v1[0,0]))
+    Alpha=Phi*180/3.14
+    e = Ellipse(xy=c, width=2*norm(f1), height=2*norm(f2), angle=Alpha)   
+    ax.add_artist(e)
+    e.set_clip_box(ax.bbox)
+    e.set_alpha(0.7)
+    e.set_facecolor(col)
+    
+    
 def draw_disk(c,r,ax,col): 
     #draw_disk(array([[1],[2]]),0.5,ax,"blue")
     e = Ellipse(xy=c, width=2*r, height=2*r, angle=0)   
@@ -77,3 +97,23 @@ def draw_disk(c,r,ax,col):
 
 def sawtooth(x):
     return (x+pi)%(2*pi)-pi   # or equivalently   2*arctan(tan(x/2))
+
+def tondarray(M):
+    if type(M)==float:
+        return array([[M]])
+    elif type(M)==int:
+        return array([[M]])        
+    else:
+        return M  
+    
+def mvnrnd2(x,G): 
+    n=len(x)
+    x1=x.reshape(n)
+    y = np.random.multivariate_normal(x1,G).reshape(n,1)
+    return(y)    
+
+def mvnrnd1(G):
+    G=tondarray(G)
+    n=len(G)
+    x=array([[0]] * n)
+    return(mvnrnd2(x,G))  

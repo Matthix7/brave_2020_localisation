@@ -2,7 +2,7 @@
 ############################################################
 # Localisation simulation1: 
 #     mobile: tank style
-#     landmarks: 2
+#     landmarks: >=2 (but only 2 at a time)
 #     measures: 
 #         angle to landmarks (bearings)
 #         heading of the boat
