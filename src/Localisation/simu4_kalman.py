@@ -7,7 +7,7 @@
 #         angle to landmarks (bearings)
 #         heading of the boat
 #         speed of the boat
-#     noise: yes
+#     noise: no, but possible
 #     limited range: yes
 # Remarks: noise matrices not accurate
 ############################################################     
@@ -28,22 +28,24 @@ from simu2 import approxPos2
 from simu3 import inRange
 
 
-
+global test 
+test= 0
 #####################  SIMULATION SETUP   ########################
 # Time step
 dt = 0.7
 
 # Position of the landmarks
-#landmarks = [array([[15], [15]]), 
-#             array([[5], [15]]), 
-#             array([[13], [17]]),
-#             array([[2], [30]]),
-#             array([[20], [20]])]
+landmarks = [array([[15], [15]]), 
+             array([[5], [15]]), 
+             array([[13], [17]]),
+             array([[2], [30]]),
+             array([[20], [20]])]
 
-landmarks = [array([[5], [25]])]
+#landmarks = [array([[5], [25]])]
 
 # Initial state of the boat
 Xinit = array([[20], [0], [pi/2], [1]])
+#Xinit = array([[20], [0], [170*pi/180], [1]])
 
 # Noise matrices
 Galpha = diag([0.1, 0.1, 5*pi/180, 0.1])**2  #noise on evolution
@@ -86,30 +88,32 @@ def findU(u):
     return dt*array([[0], [0], [u[1,0]], [u[0,0]]])
 
 # Measurement matrix
-def findC(Xhat, bearings, heading_next = None, bearing_prev = None):
-    if len(bearings) == 0 or (len(bearings) == 1 and (heading_next is None or bearing_prev is None)):
+def findC(detection_state, Xhat, bearings, heading_next = None, bearing_prev = None):
+    if detection_state == 0:
         return None
     
-    elif len(bearings) == 1 and heading_next is not None and bearing_prev is not None:
+    elif detection_state == 1:
         C = array([[1, 0, 0, 0],
                    [0, 1, 0, 0]])
-        C = vstack((C, array([[0,0,1,0]])))
+        C = vstack((C, array([[0,0,1,0]])))  # Corresponds to heading measurement
+        C = vstack((C, array([[0,0,0,1]])))  # Hypothesis: speed is quite constant (we cannot measure it)
         return C
     
     else:
         heading = Xhat[2,0]        
         C = array([[sin(heading+spot[1]), - cos(heading+spot[1]), 0, 0] for spot in bearings])
-        C = vstack((C, array([[0,0,1,0]])))
+        C = vstack((C, array([[0,0,1,0]])))  # Corresponds to heading measurement
         return C
     
 
 def findY(Xhat, bearings, heading_next = None, bearing_prev = None):
+    global test
     # bearings = [(landmark, bearing), (...), (...)]
     # landmark = array([[xl], [yl]])
     # bearing = float (angle in radians)
     
     if len(bearings) == 0 or (len(bearings) == 1 and (heading_next is None or bearing_prev is None)):
-        return None
+        return None, 0
     
     elif len(bearings) == 1 and heading_next is not None and bearing_prev is not None:
         heading = Xhat[2,0]
@@ -118,33 +122,43 @@ def findY(Xhat, bearings, heading_next = None, bearing_prev = None):
         landmark = bearings[0][0]
         dBearing = (bearing-bearing_prev)/dt   # to be replaced by IMU
         dHeading = (heading_next-heading)/dt
-#        print(dHeading, dBearing)
+        
+        if abs(dBearing) <= 1.2*abs(dHeading):
+            return None, 0
         
         tmp1 = array([[sin(heading+bearing), cos(heading+bearing)],
                    [-cos(heading+bearing), sin(heading+bearing)]])
         tmp2 = array([[-landmark[1, 0], landmark[0, 0]],
-                   [landmark[0, 0] + speed*sin(heading)/(dHeading+dBearing), landmark[1, 0] - speed*cos(heading)/(dHeading+dBearing)]])
+                   [landmark[0, 0] + speed*sin(heading)/(dHeading+dBearing),
+                   landmark[1, 0] - speed*cos(heading)/(dHeading+dBearing)]])
         tmp3 = array([[cos(heading+bearing)], [sin(heading+bearing)]])
         
         Y = matmul(matmul(tmp1, tmp2), tmp3) 
-        Y = vstack((Y, X[2,0]))
-        return Y
+        Y = vstack((Y, X[2,0]))   # Assuming we can measure the heading
+        Y = vstack((Y, Xhat[3,0])) # We will assume that speed is relatively constant as we cannot measure it.
+        
+        print("Landmark spotted")
+        print("Derivees ", dHeading, dBearing)
+        print("Position ", Y)
+        if test == 40:
+            sys.exit()
+        test += 1
+        
+        return Y, 1
 
     else:
         heading = Xhat[2,0]        
         Y = array([[spot[0][0,0]*sin(heading+spot[1]) - spot[0][1,0]*cos(heading+spot[1])] for spot in bearings])
         Y = vstack((Y, X[2,0]))
-        return Y
+        return Y, 2
 
 
-def findGbeta(bearings, heading_next = None, bearing_prev = None):
-    if len(bearings) == 0 or (len(bearings) == 1 and (heading_next is None or bearing_prev is None)):
+def findGbeta(detection_state, bearings, heading_next = None, bearing_prev = None):
+    if detection_state == 0:
         return None
     # 1 landmark spotted
-    elif len(bearings) == 1 and heading_next is not None and bearing_prev is not None:
-        Gbeta = array([[gbeta1**2, 0, 0],
-                       [0, gbeta1**2, 0],
-                       [0, 0,   0.001**2]])
+    elif detection_state == 1:
+        Gbeta = diag([gbeta1**2, gbeta1**2, 0.001**2, 0.2**2]) # errors on [x, y, heading_measured, speed_hypothesis]
         return Gbeta
     # 2 or more landmarks spotted
     else:
@@ -178,7 +192,7 @@ heading_next, bearing_prev = None, None
 # Main loop
 if __name__ == "__main__":
     
-    for t in arange(0, 30, dt):
+    for t in arange(0, 40, dt):
         # displaying real elements
         draw_sailboat(X, 0.5, 0, 0, 0)
         for landmark in landmarks:
@@ -197,32 +211,37 @@ if __name__ == "__main__":
 
 
         ### localisation
-           
+        print("### CORRECTION  ###")
+#        print("Real X = ", X[:2])
+        
         # correction
-        Y = findY(Xhat, bearings, heading_next, bearing_prev)
-        Gbeta = findGbeta(bearings, heading_next, bearing_prev)
-        C = findC(Xhat, bearings, heading_next, bearing_prev)
+        Y, detection_state = findY(Xhat, bearings, heading_next, bearing_prev)
+        Gbeta = findGbeta(detection_state, bearings, heading_next, bearing_prev)
+        C = findC(detection_state, Xhat, bearings, heading_next, bearing_prev)
         if len(bearings) == 0 or (len(bearings) == 1 and (Y is None or Gbeta is None or C is None)):
             Xhat, Gx = Xnext, Gnext
         else:
             Xhat, Gx = kalman_correc(Xnext, Gnext, Y, Gbeta, C)
         
         draw_ellipse(Xhat[0:2],Gx[0:2,0:2],0.95,ax,[0,0,0.6])
-        
-#        print('###############')
-#        print(X[0,0], Xhat[0,0])
-#        print(X[1,0], Xhat[1,0])
-#        print(X[2,0], Xhat[2,0])
-#        print(X[3,0], Xhat[3,0])
-#        print('###############')
+        print("Detection state = ", detection_state)
+        print('#### Comparison  ###')
+        print(X[0,0], Xhat[0,0])
+        print(X[1,0], Xhat[1,0])
+        print(X[2,0], Xhat[2,0])
+        print(X[3,0], Xhat[3,0])
+        print('####################')
 
 #        print('###############')
 #        print(Gx)
-#        print('###############')
+#        print('###############\n')
         
         # command
         u = array([[0], [0.05]])
+#        u = array([[0], [-0.06]])
         
+        pause(0.5)
+        print("### PREDICTION  ###")
         
         # prediction
         U = findU(u)
@@ -245,7 +264,8 @@ if __name__ == "__main__":
         X[2] = sawtooth(X[2])
         
         # end display
-        pause(dt)
+#        pause(dt)
+        pause(0.5)
         clear(ax)
 
 
