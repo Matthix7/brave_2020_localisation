@@ -148,7 +148,7 @@ def findY_1(Xhat, bearings, heading_next, bearing_prev):
     dHeading = (heading_next-heading)/dt
     
     if abs(dBearing) <= 1.2*abs(dHeading): # If the boat moves close to the line between it and the landmark, 
-        return None                        # the estimation will be bad or impossible.
+        return None                        # the estimation will be bad or impossible. (Y could be adapted to represent that line)
     
     tmp1 = array([[sin(heading+bearing), cos(heading+bearing)],
                [-cos(heading+bearing), sin(heading+bearing)]])

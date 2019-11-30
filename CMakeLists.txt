@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(brave_2020_localisation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+ add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,10 +13,14 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   roscpp
   rospy
+  sensor_msgs
+  cv_bridge
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV 3.2.0 REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -105,11 +109,14 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES brave_guerledan_2020
-#  CATKIN_DEPENDS message_generation message_runtime roscpp rospy
-#  DEPENDS system_lib
+    INCLUDE_DIRS
+    CATKIN_DEPENDS roscpp
+                   sensor_msgs
+                   std_msgs
+                   cv_bridge
+                   image_transport
 )
+
 
 ###########
 ## Build ##
@@ -118,8 +125,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -137,10 +145,12 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/brave_guerledan_2020_node.cpp)
 
-#add_executable(testGoPro src/Artificial_Vision/testGoPro.cpp)
 
 
-
+#add_executable(acquisition_image_2 src/Artificial_Vision/acquisition_image_2.cpp)
+add_executable(test_vision src/Artificial_Vision/test_vision.cpp)
+add_executable(lebars src/Artificial_Vision/lebars.cpp)
+add_executable(lebars_modified src/Artificial_Vision/lebars_modified.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -158,10 +168,12 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-#target_link_libraries(testGoPro ${catkin_LIBRARIES})
 
 
-
+#target_link_libraries(acquisition_image_2 ${catkin_LIBRARIES})
+target_link_libraries(test_vision ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(lebars ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(lebars_modified ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
 ## Install ##
