@@ -22,6 +22,7 @@ import cv2
 from time import time
 
 
+
 if __name__ == "__main__":
 ##################################################################################################
 #########################     Creating observation       #########################################
@@ -73,7 +74,7 @@ def compute_gathered_positions(map, inner_boxes, field, pos_wanted_accuracy):
     # Create a binary map of the positions where the boat can be
     field_x_low, field_y_low = field[0], field[2]
     for box in inner_boxes :#+frontier_boxes:
-        x_low = int((box[0][0]-field_x_low)/pos_wanted_accuracy)   # Translate to begin index at 0 with positive values. 1 pixel = 1 m2.
+        x_low = int((box[0][0]-field_x_low)/pos_wanted_accuracy)   # Translate to begin index at 0 with positive values. 1 pixel = pos_wanted_accuracy m2.
         x_high = int((box[0][1]-field_x_low)/pos_wanted_accuracy)
         
         y_low = int((box[1][0]-field_y_low)/pos_wanted_accuracy)

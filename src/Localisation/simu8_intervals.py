@@ -8,7 +8,7 @@
 #         heading of the boat
 #     noise: yes
 #     limited range: no
-# Remarks: cf "compute all possible positions" section. Limited accuracy on position.
+# Remarks: Solved issue mentioned in previous version
 ############################################################     
 
 from vibes import *
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     
     
     # Initial state of the boat
-    Xinit = array([[10], [50], [-1], [2]])
+    Xinit = array([[30], [30], [1], [2]])
 
 
 
@@ -119,41 +119,41 @@ if __name__ == "__main__":
         ## Drawing
         vibes.beginDrawing()
         vibes.newFigure("Localization")
-        vibes.setFigureProperties({'x':130, 'y':100, 'width':800, 'height': 800})
-        
+        vibes.setFigureProperties({'x':130, 'y':100, 'width':800, 'height': 800})        
+        vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
         
 ##################################################################################################
 ######################### Compute all possible positions #########################################        
         # Set constraints        
         P = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
-        seps = []
-        for m,d,alpha in zip(anonymised_marks, anonymised_distances, anonymised_angles):
-            sep = SepPolarXY(d, alpha)
-            fforw = Function("v1", "v2", "(%f-v1;%f-v2)" %(m[0], m[1]))
-            fback = Function("p1", "p2", "(%f-p1;%f-p2)" %(m[0], m[1]))
-            sep = SepTransform(sep, fback, fforw)
-            seps.append(sep)
-            
-        sep = SepQInterProjF(seps)
-        sep.q = len(anonymised_marks) - 3      # How many measures can be considered as outliers. Here we want 3 correct measures.
-# Solution pas totalement satisfaisante car creation de faux-positifs.
-# En effet, une meme mesure peut etre consideree comme correcte pour deux bouees distinctes et "compte double" dans ce cas.
-# Cela se produit lorsque la mesure et la droite passant par deux bouees partagent le meme azimut. 
-# On a dans ce cas une zone qui se cree sur cet azimut de sorte a satisfaire la troisieme contrainte.
+        separators = []
+        for i in range(len(landmarks)):
+            seps =[]
+            for m,d,alpha in zip(anonymised_marks[3*i:3*(i+1)], anonymised_distances[3*i:3*(i+1)], anonymised_angles[3*i:3*(i+1)]):
+                sep = SepPolarXY(d, alpha)
+                fforw = Function("v1", "v2", "(%f-v1;%f-v2)" %(m[0], m[1]))
+                fback = Function("p1", "p2", "(%f-p1;%f-p2)" %(m[0], m[1]))
+                sep = SepTransform(sep, fback, fforw)
+                seps.append(sep)
+                
+            sep = SepQInterProjF(seps)
+            sep.q = 0      # How many measures can be considered as outliers. Here we want 3 correct measures.
+            separators.append(sep)
         
-        
-        
-        # Compute all possible positions. Factor 4 in accuracy is due to bissections effects.
-        inner_boxes, outer_boxes, frontier_boxes = pySIVIA(P, sep, 4*pos_wanted_accuracy, display_stats=False)#, draw_boxes = False)
-
+        inner_boxes, outer_boxes, frontier_boxes = [], [], []
+        for sep in separators:
+            # Compute all possible positions. Factor 4 in accuracy is due to bissections effects.
+            inner, outer, frontier = pySIVIA(P, sep, 4*pos_wanted_accuracy, display_stats=False, draw_boxes = False)
+            inner_boxes += inner
+            outer_boxes += outer
+            frontier_boxes += frontier
 
 
         ## Drawing
         for m, b in zip(landmarks, bearings):
             vibes.drawCircle(m[0], m[1], 1, 'yellow[black]')  
             vibes.drawPie((X[0,0],X[1,0]), (0.,35.), (b[0],b[1]), color='black',use_radian=True) 
-        vibes.drawCircle(X[0,0], X[1,0], 1, 'blue[black]')           
-        vibes.axisEqual()                    
+        vibes.drawCircle(X[0,0], X[1,0], 1, 'blue[black]')   
         vibes.endDrawing()
            
 ##################################################################################################
@@ -186,7 +186,7 @@ if __name__ == "__main__":
 ################################     Evolution      ##############################################
 
         # command
-        u = array([[0.], [0.02]])  #(speed_command, rotation_command)
+        u = array([[0.], [0.0]])  #(speed_command, rotation_command)
 
         # evolution
         dX = evolX(X, u)        
