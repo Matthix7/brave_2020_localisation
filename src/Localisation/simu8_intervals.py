@@ -2,28 +2,30 @@
 ############################################################
 # Localisation simulation7: 
 #     mobile: tank style
-#     landmarks: 3
+#     landmarks: 3 exactly
 #     measures: 
 #         angle to landmarks (bearings)
 #         heading of the boat
 #     noise: yes
 #     limited range: no
 # Remarks: Solved issue mentioned in previous version
+#          Static computing: does not consider knowledge from t(k-1) to compute position at t(k).
 ############################################################     
 
 from vibes import *
 from pyibex import *
 from pyibex.geometry import SepPolarXY
 
+from roblib import *
+
 from numpy import pi, array, asarray, zeros, ones, uint8, arange
 from math import factorial
+import random
 from itertools import permutations
-import cv2
 from time import time
+import cv2
 
-from roblib import *
-from simu6_intervals import anonymise_measures, compute_gathered_positions
-
+from simu6_intervals import compute_gathered_positions
 
 if __name__ == "__main__":
 ##################################################################################################
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     range_of_vision = oo
     
     # Wanted accuracy on position
-    pos_wanted_accuracy = 0.5
+    pos_wanted_accuracy = 0.3
     
     # Time step
     dt = 0.7              # Integration step
@@ -49,13 +51,19 @@ if __name__ == "__main__":
     
     
     # Initial state of the boat
-    Xinit = array([[30], [30], [1], [2]])
+    Xinit = array([[30], [30], [1], [5]])
 
 
 
 ##################################################################################################
 #########################   IA computation functions     #########################################
 
+def anonymise_measures(landmarks, bearings, detection_range):
+    anonymised_distances = [Interval(0,detection_range)] * len(landmarks)*factorial(len(landmarks))
+    anonymised_angles = bearings*factorial(len(landmarks))
+    anonymised_marks = list(permutations(landmarks))
+    random.shuffle(anonymised_marks)
+    return anonymised_marks, anonymised_angles, anonymised_distances 
 
 
 ##################################################################################################
@@ -99,13 +107,14 @@ def inRange(X, landmarks):
 ##################################################################################################
 ##################################  Simulation    ################################################
 
-# Initialising variables
-X = Xinit
-
 
 # Main loop
 if __name__ == "__main__":
-    
+
+    # Initialising variables
+    X = Xinit
+    cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
+
     for t in arange(0, 30, dt):
 
 ##################################################################################################
@@ -114,12 +123,13 @@ if __name__ == "__main__":
         anonymised_marks, anonymised_angles, anonymised_distances = anonymise_measures(landmarks, bearings, range_of_vision)        
         
         
-        
+        ## Performances assessment
+        t0 = time()
         
         ## Drawing
         vibes.beginDrawing()
         vibes.newFigure("Localization")
-        vibes.setFigureProperties({'x':130, 'y':100, 'width':800, 'height': 800})        
+        vibes.setFigureProperties({'x':800, 'y':100, 'width':800, 'height': 800})        
         vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
         
 ##################################################################################################
@@ -127,9 +137,9 @@ if __name__ == "__main__":
         # Set constraints        
         P = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
         separators = []
-        for i in range(len(landmarks)):
+        for i in range(len(anonymised_marks)):
             seps =[]
-            for m,d,alpha in zip(anonymised_marks[3*i:3*(i+1)], anonymised_distances[3*i:3*(i+1)], anonymised_angles[3*i:3*(i+1)]):
+            for m,d,alpha in zip(anonymised_marks[i], anonymised_distances[3*i:3*(i+1)], anonymised_angles[3*i:3*(i+1)]):
                 sep = SepPolarXY(d, alpha)
                 fforw = Function("v1", "v2", "(%f-v1;%f-v2)" %(m[0], m[1]))
                 fback = Function("p1", "p2", "(%f-p1;%f-p2)" %(m[0], m[1]))
@@ -143,30 +153,45 @@ if __name__ == "__main__":
         inner_boxes, outer_boxes, frontier_boxes = [], [], []
         for sep in separators:
             # Compute all possible positions. Factor 4 in accuracy is due to bissections effects.
-            inner, outer, frontier = pySIVIA(P, sep, 4*pos_wanted_accuracy, display_stats=False, draw_boxes = False)
+            inner, outer, frontier = pySIVIA(P, sep, 4*pos_wanted_accuracy, draw_boxes = False)
             inner_boxes += inner
             outer_boxes += outer
             frontier_boxes += frontier
 
 
+        ## Performances assessment
+        t1 = time()
+
         ## Drawing
+            
+        for box in frontier_boxes:
+            vibes.drawBox(box[0][0], box[0][1], box[1][0], box[1][1], color='black[yellow]')
+        for box in inner_boxes:
+            vibes.drawBox(box[0][0], box[0][1], box[1][0], box[1][1], color='black[red]')
+            
+        vibes.drawCircle(X[0,0], X[1,0], 0.2, 'blue[black]') 
         for m, b in zip(landmarks, bearings):
             vibes.drawCircle(m[0], m[1], 1, 'yellow[black]')  
             vibes.drawPie((X[0,0],X[1,0]), (0.,35.), (b[0],b[1]), color='black',use_radian=True) 
-        vibes.drawCircle(X[0,0], X[1,0], 1, 'blue[black]')   
         vibes.endDrawing()
            
 ##################################################################################################
 ############################     Gather in areas      ############################################
 
-
-
-        cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
         
         map = zeros((int((field_y_high-field_y_low)/pos_wanted_accuracy), int((field_x_high-field_x_low)/pos_wanted_accuracy)), uint8)
         map, possible_positions =  compute_gathered_positions(map, inner_boxes, field, pos_wanted_accuracy)
         
         
+        ## Performances assessment
+        print
+        print "########   "+str(t)+"  ########" 
+        print "Temps de calcul: "
+        print t1-t0
+        print "Temps de rassemblement: "
+        print time()-t1
+        
+        ## Display
         cv2.imshow("Test", cv2.flip(map, 0))
         
         key = cv2.waitKey(int(1000*slowing_ratio*dt))
@@ -177,7 +202,7 @@ if __name__ == "__main__":
             pause(0.5)
             key = cv2.waitKey(1)
             while key & 0xFF != 32:    
-                pause(0.5)
+                pause(0.2)
                 key = cv2.waitKey(1)
 
 
