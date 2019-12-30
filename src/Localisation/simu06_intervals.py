@@ -75,27 +75,21 @@ def compute_gathered_positions(map, inner_boxes, field, pos_wanted_accuracy):
     field_x_low, field_y_low = field[0], field[2]
     for box in inner_boxes :#+frontier_boxes:
         x_low = int((box[0][0]-field_x_low)/pos_wanted_accuracy)   # Translate to begin index at 0 with positive values. 1 pixel = pos_wanted_accuracy m2.
-        x_high = int((box[0][1]-field_x_low)/pos_wanted_accuracy)
-        
+        x_high = int((box[0][1]-field_x_low)/pos_wanted_accuracy)        
         y_low = int((box[1][0]-field_y_low)/pos_wanted_accuracy)
         y_high =  int((box[1][1]-field_y_low)/pos_wanted_accuracy)
         
-        map[y_low:y_high, x_low:x_high] = 255*ones((y_high-y_low, x_high-x_low), uint8)
-    
+        map[y_low:y_high, x_low:x_high] = 255*ones((y_high-y_low, x_high-x_low), uint8)    
     im,contours,hierarchy = cv2.findContours(map, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     
     # Fit the different areas into rectangles
     possible_positions = []
     for cnt in contours:
         x,y,w,h  = cv2.boundingRect(cnt)
-        x, y, w, h = int(x), int(y), int(w), int(h)
-            
-#        cv2.rectangle(map, (x,y),(x+w,y+h),(255,0,0),1)
-        
+        x, y, w, h = int(x), int(y), int(w), int(h)            
+#        cv2.rectangle(map, (x,y),(x+w,y+h),(255,0,0),1)        
         centre_real, shape_real = ((x + w/2)*pos_wanted_accuracy, (y + h/2)*pos_wanted_accuracy), (w*pos_wanted_accuracy, h*pos_wanted_accuracy)
-        
-        possible_positions.append([centre_real, shape_real])
-    
+        possible_positions.append([centre_real, shape_real])    
     return map, possible_positions
 
 
