@@ -13,7 +13,7 @@
 #          No measure of distance to different landmarks
 ############################################################     
 
-from vibes import *
+# from vibes import *
 from pyibex import *
 from pyibex.geometry import SepPolarXY
 
