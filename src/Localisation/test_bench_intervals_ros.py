@@ -11,11 +11,14 @@
 #     limited range: yes
 # Remarks: Relies on (noisy) measure of speed. Would be better to get rid of it if possible.
 #          No measure of distance to different landmarks
+#          Real time version, not a simulation
 ############################################################     
 
-# from vibes import *
+import rospy
+
 from pyibex import *
 from pyibex.geometry import SepPolarXY
+from vibes import *
 
 from roblib import *
 
@@ -23,45 +26,11 @@ from numpy import pi, array, asarray, zeros, ones, uint8, arange
 from math import factorial
 import random
 from itertools import permutations
-from time import time
+from time import time, sleep
 import cv2
 
 
-if __name__ == "__main__":
-##################################################################################################
-#########################         Setup section          #########################################
-
-    # Field of research
-    field_x_low, field_x_high = -60, 130
-    field_y_low, field_y_high = 0, 230
-    search_field = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
-    
-    
-    # Estimated specification of sensors
-    azimuth_accuracy = 5 *pi/180     # Compass + camera accuracy to compute the azimuth of a buoy
-    range_of_vision = 15              # maximum distance for mark detection
-    angle_of_perception = 50 *pi/180   # angle of perception of the camera
-    speed_accuracy = 1              # accuracy on speed measurement.
-    
-    # To adapt the Dubins' model, we add a term that represents lateral variations of position
-    max_lateral_speed = 0.5
-    
-    # Wanted accuracy on position
-    pos_wanted_accuracy = 0.3
-    
-    # Time step
-    dt = 0.7              # Integration step
-    slowing_ratio = 0.5
-    
-       
-    # Landmarks
-    landmarks = [[35, 70], [75,95], [25,120]]
-#    landmarks = [[15, 15], [5, 15], [2, 29], [13, 17], [20, 20]]
-    
-    # Initial state of the boat
-    Xinit = array([[30], [30], [pi/2], [2]])
-#    Xinit = array([[20], [0], [pi/2], [1]])
-
+from std_msgs.msg import Float32, String
 
 ##################################################################################################
 #########################   IA computation functions     #########################################
@@ -77,6 +46,7 @@ def compute_all_positions(X_boxes, azimuths, pos_wanted_accuracy, speed, heading
         static_estimations = [field]
     
     lat_moves = Interval(0.).inflate(lateral_speed)
+
     f_evol = Function("x[2]", "(x[0] + %f*(%s*cos(%s) + %s*sin(%s)), x[1] + %f*(%s*sin(%s) + %s*cos(%s)))"%(2*(dt, str(speed), str(heading), str(lat_moves), str(heading))))
     dynamic_estimations = [f_evol.eval_vector(X_box) for X_box in X_boxes]
     
@@ -138,25 +108,25 @@ def compute_gathered_positions(inner_boxes, field, pos_wanted_accuracy):
     # Create a binary map of the positions where the boat can be
     field_x_low, field_y_low = field[0][0], field[1][0]
     field_x_high, field_y_high = field[0][1], field[1][1]
-    map = zeros((int((field_y_high-field_y_low)/pos_wanted_accuracy), int((field_x_high-field_x_low)/pos_wanted_accuracy)), uint8)
+    binary_map = zeros((int((field_y_high-field_y_low)/pos_wanted_accuracy), int((field_x_high-field_x_low)/pos_wanted_accuracy)), uint8)
     for box in inner_boxes :#+frontier_boxes:
         x_low = int((box[0][0]-field_x_low)/pos_wanted_accuracy)   # Translate to begin index at 0 with positive values. 1 pixel = pos_wanted_accuracy m2.
         x_high = int((box[0][1]-field_x_low)/pos_wanted_accuracy)        
         y_low = int((box[1][0]-field_y_low)/pos_wanted_accuracy)
         y_high =  int((box[1][1]-field_y_low)/pos_wanted_accuracy)
         
-        map[y_low:y_high, x_low:x_high] = 255*ones((y_high-y_low, x_high-x_low), uint8)    
-    im,contours,hierarchy = cv2.findContours(map, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        binary_map[y_low:y_high, x_low:x_high] = 255*ones((y_high-y_low, x_high-x_low), uint8)    
+    im,contours,hierarchy = cv2.findContours(binary_map, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     
     # Fit the different areas into rectangles
     possible_positions = []
     for cnt in contours:
         x,y,w,h  = cv2.boundingRect(cnt)
         x, y, w, h = int(x), int(y), int(w), int(h)            
-#        cv2.rectangle(map, (x,y),(x+w,y+h),(255,0,0),1)        
+#        cv2.rectangle(binary_map, (x,y),(x+w,y+h),(255,0,0),1)        
         centre_real, shape_real = ((x + w/2)*pos_wanted_accuracy, (y + h/2)*pos_wanted_accuracy), (w*pos_wanted_accuracy, h*pos_wanted_accuracy)
         possible_positions.append([centre_real, shape_real])    
-    return map, possible_positions
+    return binary_map, possible_positions
 
 
 
@@ -168,89 +138,157 @@ def anonymise_measures(landmarks, azimuths, range_of_vision):
     return anonymised_marks, anonymised_angles, anonymised_distances 
 
 
-##################################################################################################
-################################  SIMULATION FUNCTIONS   #########################################
 
-# Evolution equation
-def evolX(X, u):
-    """Returns the derivative of X."""
-    X, u = X.flatten(), u.flatten()
-    x, y, theta, v = X[0], X[1], X[2], X[3]
+
+##################################################################################################
+#############################   ROS callblacks     ###############################################
+def sub_heading(data):
+    global heading, heading_accuracy
+    heading = Interval(data.data).inflate(heading_accuracy)
+
+
+def sub_speed(data):
+    global speed, speed_accuracy
+    speed = Interval(data.data).inflate(speed_accuracy)
+
+
+def sub_directions(data):
+    global marks_directions, azimuth_accuracy
+    directions = eval(data.data)
+    marks_directions = map(lambda x: Interval(x).inflate(direction_accuracy), directions)
+
+
+
+def sub_state(data):
+    global real_boat_state_vector
+    real_boat_state_vector = asarray(eval(data.data))
+
+##################################################################################################
+##################################   Main Loop    ################################################
+##################################################################################################
+
+
+
+def run():
+    global marks_directions, speed, heading, heading_accuracy, direction_accuracy, speed_accuracy, real_boat_state_vector
+##################################################################################################
+#########################         Setup section          #########################################
+
+    # integration step
+    dt = rospy.get_param('integration_step', 0.2)
+
+    # Field of research
+    field_x_low = rospy.get_param('field_x_low', -60.)
+    field_x_high = rospy.get_param('field_x_high', 130.)
+    field_y_low = rospy.get_param('field_y_low', 0.)
+    field_y_high = rospy.get_param('field_y_high', 230.)
+
+    search_field = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
     
-    dX = array([[v*cos(theta)], [v*sin(theta)], [u[1]], [u[0]]])
     
-    return dX
+    # Estimated specifications of sensors
+    heading_accuracy = rospy.get_param('heading_accuracy', 5) *pi/180        # Compass accuracy
+    direction_accuracy = rospy.get_param('direction_accuracy', 5) *pi/180    # Camera accuracy
+    range_of_vision = rospy.get_param('range_of_vision', 15)                 # maximum distance for mark detection
+    angle_of_perception = rospy.get_param('angle_of_perception', 50) *pi/180 # angle of perception of the camera
+    speed_accuracy = rospy.get_param('speed_accuracy', 0.3)                  # accuracy on speed measurement.
+    
+    # To adapt the Dubins' model, we add a term that represents lateral variations of position
+    max_lateral_speed = rospy.get_param('max_lateral_speed', 0.5)
+    
+    # Wanted accuracy on position
+    pos_wanted_accuracy = rospy.get_param('pos_wanted_accuracy', 0.3)
+    
+       
+    # Landmarks
+    landmarks = [[35, 70], [75,95], [25,120]]
+    
+
+    print "######## INIT ##############"
+    print "Integration step = ", dt
+    print "Search field = ", search_field
+    print "Heading acuracy = ", heading_accuracy
+    print "Marks direction accuracy = ", direction_accuracy
+    print "Range of vision = ", range_of_vision
+    print "Angle of perception = ", angle_of_perception
+    print "Speed accuracy = ", speed_accuracy
+    print "Max lateral speed = ", max_lateral_speed
+    print "Wanted accuracy = ", pos_wanted_accuracy
+    print
+    print "############################"
 
 
-def getAzimuths(X, landmarks, accuracy = pi/180*5):
-    """Returns the bearing for the designated landmark."""
-    x, y = X[0, 0], X[1, 0]
-    azimuths = []
-    for landmark in landmarks:
-        xl, yl = landmark[0], landmark[1]        
-        camera_measure = sawtooth(atan2(yl-y, xl-x) - X[2,0])
-        compass_measure = X[2,0]
-        azimuths.append(Interval(camera_measure+compass_measure-accuracy, camera_measure+compass_measure+accuracy))
-    return azimuths
+    # Initialising variables
+    boat_possible_positions = [search_field]
+    cv2.namedWindow("Possible positions", cv2.WINDOW_NORMAL)
+    marks_directions = []
+    speed = Interval(0,100)
+    heading = Interval(-pi,pi)
+    real_boat_state_vector = array([[0,0,0,0]]).T
+    sleep(2)
+##################################################################################################
+#########################      ROS initialisation        #########################################
+    rospy.init_node("interval_localiser")
 
 
-def inRange(X, landmarks, perceptionAngle, visionRange):
-    """Returns the list of the landmarks that the boat is really able to see."""
-    spotted = []
-    for m in landmarks:
-        dist = norm(X[:2]-asarray(m).reshape((2,1)))
-        bearing = sawtooth(atan2(m[1]-X[1,0], m[0]-X[0,0]) - X[2,0])
-        if dist < visionRange and np.abs(bearing) < perceptionAngle:
-            spotted.append(m)            
-    return spotted
+    pub_positions = rospy.Publisher("boat_possible_positions", String, queue_size = 2)
+    rospy.Subscriber("buoys_directions", String, sub_directions)
+    rospy.Subscriber("heading", Float32, sub_heading)
+    rospy.Subscriber("speed", Float32, sub_speed)
 
+
+    rate = rospy.Rate(1/dt)
+    rospy.loginfo("Initiated localisation")
 
 
 ##################################################################################################
-##################################  Simulation    ################################################
-##################################################################################################
+#################################      Drawing        ############################################
 
-
-
-# Main loop
-if __name__ == "__main__":
     ## Drawing
     vibes.beginDrawing()
     vibes.newFigure("Localization")
     vibes.setFigureProperties({'x':800, 'y':100, 'width':800, 'height': 800})        
     vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
-    
+    rospy.Subscriber("state_truth", String, sub_state)
 
-    # Initialising variables
-    X = Xinit
-    boat_possible_positions = [search_field]
-    cv2.namedWindow("Test", cv2.WINDOW_NORMAL)
-    
-    
-    for t in arange(0, 300, dt):
+
+    while not rospy.is_shutdown():
         
-        print
-        print "########   "+str(t)+"  ########" 
+        # 1st interval function
+        boat_possible_positions = compute_all_positions(boat_possible_positions, 
+                                                        marks_directions, 
+                                                        pos_wanted_accuracy,
+                                                        speed, 
+                                                        heading, 
+                                                        max_lateral_speed, 
+                                                        search_field, 
+                                                        landmarks, 
+                                                        range_of_vision, dt)
         
+
+        #2nd interval function
+        binary_map, possible_positions = compute_gathered_positions(boat_possible_positions, 
+                                                             search_field , 
+                                                             pos_wanted_accuracy)
+
+       
+
+
 ##################################################################################################
-############################  Simulate the measures   ############################################
-        spotted = inRange(X, landmarks, angle_of_perception, range_of_vision)
-        marks_directions = getAzimuths(X, spotted, accuracy = azimuth_accuracy) 
-        boat_speed = Interval(X[3,0]).inflate(speed_accuracy)
-        boat_heading = Interval(X[2,0]).inflate(azimuth_accuracy)
-                
-##################################################################################################
-######################### Compute all possible positions #########################################    
-        t0 = time()
-        
-        boat_possible_positions = compute_all_positions(boat_possible_positions, marks_directions, pos_wanted_accuracy,
-                                                boat_speed, boat_heading, max_lateral_speed, search_field, landmarks, range_of_vision, dt)
-        
-        t1 = time()
-##################################################################################################
-############################    Optional features     ############################################    
+############################    Drawing     ############################################    
 
         ## Drawing   
+        X = real_boat_state_vector
+
+
+        print '\n'
+        print "Pos truth: ", X[0,0], X[1,0]
+        print "Heading truth: ", X[2,0]
+        print "Heading interval: ", heading
+        print "Speed truth: ", X[3,0]
+        print "Speed interval: ", speed
+        print '\n'
+
         vibes.clearFigure()        
         scale = (field_y_high-field_y_low)/100. 
         for X_box in boat_possible_positions:
@@ -260,54 +298,14 @@ if __name__ == "__main__":
             vibes.drawPie((X[0,0],X[1,0]), (0.,range_of_vision), (b[0],b[1]), color='black',use_radian=True)             
         for m in landmarks:
             vibes.drawCircle(m[0], m[1], 1*scale, 'yellow[black]')  
-        for m in spotted:
-            vibes.drawCircle(m[0], m[1], 1*scale, 'yellow[blue]')  
-           
-##################################################################################################
-############################     Gather in areas      ############################################
-        t2 = time()
-        
-        map, possible_positions = compute_gathered_positions(boat_possible_positions, search_field , pos_wanted_accuracy)
-        
-        t3 = time()
-
-##################################################################################################
-############################    Optional features     ############################################    
-
-        ## Performances assessment
-        print "Temps de calcul: "
-        print t1-t0
-        print "Temps de rassemblement: "
-        print t3-t2
-        print "Positions estimees: "
-        print asarray(possible_positions)
-        
-        ## Display
-        cv2.imshow("Test", cv2.flip(map, 0))
-        
-        key = cv2.waitKey(int(1000*slowing_ratio*dt))
-        if  key & 0xFF == 32: 
-            pause(0.5)
-            key = cv2.waitKey(1)
-            while key & 0xFF != 32 and key & 0xFF != 27:    
-                pause(0.2)
-                key = cv2.waitKey(1)                
-        if key & 0xFF == 27:    
-            cv2.destroyAllWindows()
-            break
-
-##################################################################################################
-################################     Evolution      ##############################################
-
-        # command
-        u = array([[0.], [-0.025]])  #(speed_command, rotation_command)
-
-        # evolution
-        dX = evolX(X, u)        
-        X = X + dt*dX
-        X[2] = sawtooth(X[2])
-        
 
 
-vibes.endDrawing()
+        ## Display binary map
+        cv2.imshow("Possible positions", cv2.flip(binary_map, 0))
+        cv2.waitKey(1)
+        rate.sleep()
 
+
+
+if __name__ == "__main__":
+    run()

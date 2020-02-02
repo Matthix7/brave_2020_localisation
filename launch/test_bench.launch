@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="interval_localiser" pkg="brave_2020_localisation" type="test_bench_intervals_ros.py" output='screen' />
+    <node name="boat_simulation" pkg="brave_2020_localisation" type="test_bench_boat_simulation.py" output='screen'/>
+    <node name="operator" pkg="brave_2020_localisation" type="test_bench_operator.py" output='screen' />
+
+
+<!-- Set the limits of the rectangular field in which the boat can be-->
+    <arg name="field_x_low" default="-60." />
+    <param name="field_x_low" type="double" value="$(arg field_x_low)" />
+
+    <arg name="field_x_high" default="130." />
+    <param name="field_x_high" type="double" value="$(arg field_x_high)" />
+
+    <arg name="field_y_low" default="0." />
+    <param name="field_y_low" type="double" value="$(arg field_y_low)" />
+
+    <arg name="field_y_high" default="230." />
+    <param name="field_y_high" type="double" value="$(arg field_y_high)" />
+
+
+
+<!-- Set the accuracies of the different sensors (angles in degrees)-->
+    <arg name="heading_accuracy" default="5." />
+    <param name="heading_accuracy" type="double" value="$(arg heading_accuracy)" />
+
+    <arg name="direction_accuracy" default="5." />
+    <param name="direction_accuracy" type="double" value="$(arg direction_accuracy)" />
+
+    <arg name="range_of_vision" default="15." />
+    <param name="range_of_vision" type="double" value="$(arg range_of_vision)" />
+
+    <arg name="angle_of_perception" default="50." />
+    <param name="angle_of_perception" type="double" value="$(arg angle_of_perception)" />
+
+    <arg name="speed_accuracy" default="0.3" />
+    <param name="speed_accuracy" type="double" value="$(arg speed_accuracy)" />
+
+
+
+<!-- Model approximation-->
+    <arg name="max_lateral_speed" default="0.5" />
+    <param name="max_lateral_speed" type="double" value="$(arg max_lateral_speed)" />
+
+
+<!-- Accuracy on positioning-->
+    <arg name="pos_wanted_accuracy" default="0.3" />
+    <param name="pos_wanted_accuracy" type="double" value="$(arg pos_wanted_accuracy)" />
+
+
+<!-- integration step for dynamics estimation-->
+    <arg name="integration_step" default="0.2" />
+    <param name="integration_step" type="double" value="$(arg integration_step)" />
+
+
+
+</launch>
