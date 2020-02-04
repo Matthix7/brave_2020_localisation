@@ -32,13 +32,13 @@
     <arg name="direction_accuracy" default="5." />
     <param name="direction_accuracy" type="double" value="$(arg direction_accuracy)" />
 
-    <arg name="range_of_vision" default="100." />
+    <arg name="range_of_vision" default="15." />
     <param name="range_of_vision" type="double" value="$(arg range_of_vision)" />
 
     <arg name="angle_of_perception" default="50." />
     <param name="angle_of_perception" type="double" value="$(arg angle_of_perception)" />
 
-    <arg name="speed_accuracy" default="0.3" />
+    <arg name="speed_accuracy" default="0.5" />
     <param name="speed_accuracy" type="double" value="$(arg speed_accuracy)" />
 
 

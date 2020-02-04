@@ -65,16 +65,15 @@ def sub_operator(data):
 
 
 def sub_landmarks(data):
-	global speed_command, rotation_command
-	speed_command = data.y
-	rotation_command = data.x
+	global landmarks
+	landmarks = eval(data.data)
 
 
 
 
 
 def run():
-	global speed_command, rotation_command
+	global speed_command, rotation_command, landmarks
 
 
 ##################################################################################################
@@ -94,7 +93,7 @@ def run():
 	Xinit = array([[2], [2], [pi/2], [0.1]])
 
 	# Landmarks
-	landmarks = [[35, 70], [75,95], [25,120]]
+	landmarks = []
 
 
 ##################################################################################################
@@ -115,6 +114,11 @@ def run():
 	X = Xinit
 	speed_command = 0.
 	rotation_command = 0.
+
+	while not rospy.is_shutdown() and landmarks == []:
+		rospy.sleep(1)
+
+	rospy.loginfo("\nGot landmarks: "+str(landmarks))
 
 	while not rospy.is_shutdown():
 

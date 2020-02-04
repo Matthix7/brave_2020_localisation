@@ -180,12 +180,14 @@ def run():
     dt = rospy.get_param('integration_step', 0.2)
 
     # Field of research
-    base_map, field_limits, landmarks = get_local_coordinates()
+    base_map, pixel_map_data, field_limits, landmarks = get_local_coordinates()
     field_x_low, field_x_high, field_y_low, field_y_high  = field_limits
+    origin_px, x_scale, y_scale = pixel_map_data   #location of the origin in the matrix, conversion m/px
 
     search_field = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
     
-    
+    display = False
+
     # Estimated specifications of sensors
     heading_accuracy = rospy.get_param('heading_accuracy', 5) *pi/180        # Compass accuracy
     direction_accuracy = rospy.get_param('direction_accuracy', 5) *pi/180    # Camera accuracy
@@ -217,7 +219,7 @@ def run():
 
     # Initialising variables
     boat_possible_positions = [search_field]
-    cv2.namedWindow("Possible positions", cv2.WINDOW_NORMAL)
+    # cv2.namedWindow("Possible positions", cv2.WINDOW_NORMAL)
     marks_directions = []
     speed = Interval(0,100)
     heading = Interval(-pi,pi)
@@ -236,18 +238,18 @@ def run():
 
     rate = rospy.Rate(1/dt)
     rospy.loginfo("Initiated localisation")
+    cv2.namedWindow("position_map", cv2.WINDOW_NORMAL)
 
 
 ##################################################################################################
 #################################      Drawing        ############################################
-
-    ## Drawing
-    vibes.beginDrawing()
-    vibes.newFigure("Localization")
-    vibes.setFigureProperties({'x':800, 'y':100, 'width':800, 'height': 800})        
-    vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
+    if display:
+        ## Drawing
+        vibes.beginDrawing()
+        vibes.newFigure("Localization")
+        vibes.setFigureProperties({'x':800, 'y':100, 'width':800, 'height': 800})        
+        vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
     rospy.Subscriber("state_truth", String, sub_state)
-
 
     while not rospy.is_shutdown():
         
@@ -287,19 +289,32 @@ def run():
         print "Speed interval: ", speed
         print '\n'
 
-        vibes.clearFigure()        
-        scale = (field_y_high-field_y_low)/100. 
-        for X_box in boat_possible_positions:
-            vibes.drawBox(X_box[0][0], X_box[0][1], X_box[1][0], X_box[1][1], color='[blue]')
-        vibes.drawCircle(X[0,0], X[1,0], 1*scale, 'blue[black]') 
-        for b in marks_directions:
-            vibes.drawPie((X[0,0],X[1,0]), (0.,range_of_vision), (b[0],b[1]), color='black',use_radian=True)             
-        for m in landmarks:
-            vibes.drawCircle(m[0], m[1], 1*scale, 'yellow[black]')  
+        if display:
+            vibes.clearFigure()        
+            scale = (field_y_high-field_y_low)/100. 
+            for X_box in boat_possible_positions:
+                vibes.drawBox(X_box[0][0], X_box[0][1], X_box[1][0], X_box[1][1], color='[blue]')
+            vibes.drawCircle(X[0,0], X[1,0], 1*scale, 'blue[black]') 
+            for b in marks_directions:
+                vibes.drawPie((X[0,0],X[1,0]), (0.,range_of_vision), (b[0],b[1]), color='black',use_radian=True)             
+            for m in landmarks:
+                vibes.drawCircle(m[0], m[1], 1*scale, 'yellow[black]')  
 
 
         ## Display binary map
-        cv2.imshow("Possible positions", cv2.flip(binary_map, 0))
+        position_mask = cv2.flip(binary_map, 0)
+        resized_position_mask = cv2.resize(position_mask, (base_map.shape[1], base_map.shape[0]))
+        # cv2.imshow("Possible positions", position_mask)
+        colored_position_mask = cv2.bitwise_and(base_map,base_map, mask = resized_position_mask)
+        display_map = cv2.addWeighted(base_map, 0.5, colored_position_mask, 0.5, 0)
+
+        x_boat_px, y_boat_px = origin_px[0]+int(X[0,0]/x_scale), origin_px[1]-int(X[1,0]/y_scale)
+        
+        cv2.circle(display_map, 
+                   (x_boat_px, y_boat_px), 
+                   5, (0,0,255), thickness=5)
+
+        cv2.imshow("position_map", display_map)
         cv2.waitKey(1)
         rate.sleep()
 

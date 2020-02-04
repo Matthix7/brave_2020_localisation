@@ -89,8 +89,6 @@ def marks_acquisition():
     r = rospkg.RosPack()
     package_path = r.get_path('brave_2020_localisation')
 
-    cv2.namedWindow("base_map", cv2.WINDOW_NORMAL)
-
     cv2.setMouseCallback('base_map',set_origin)
     confirm = False
 
@@ -151,6 +149,7 @@ def marks_acquisition():
 
 def get_local_coordinates():
         
+    cv2.namedWindow("base_map", cv2.WINDOW_NORMAL)
     base_map_original, base_map, marks = marks_acquisition()
     origin = (marks[0][1][0], marks[0][1][1])
     origin_px = (marks[0][0][0], marks[0][0][1])
@@ -193,8 +192,9 @@ def get_local_coordinates():
     key = cv2.waitKey(0) & 0xFF
     while key != 10 and not rospy.is_shutdown():
         key = cv2.waitKey(0) & 0xFF
-
-    return base_map_original, (map_x_low, map_x_high, map_y_low, map_y_high), local_marks
+    cv2.destroyWindow("base_map")
+    return base_map_original, (origin_px, dx_global/dx_pixel, dy_global/dy_pixel),\
+           (map_x_low, map_x_high, map_y_low, map_y_high), local_marks
 
 
 
