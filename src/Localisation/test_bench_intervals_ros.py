@@ -37,13 +37,14 @@ from gps_converter import get_local_coordinates
 #########################   IA computation functions     #########################################
 
 
-def compute_all_positions(X_boxes, azimuths, pos_wanted_accuracy, speed, heading, lateral_speed, field, landmarks, range_of_vision, dt):
+def compute_all_positions(X_boxes, directions, pos_wanted_accuracy, speed, heading, lateral_speed, field, landmarks, range_of_vision, dt):
     """
     Based on Interval Analysis methods, computes all the positions where the boat can possibly be.
 
     Inputs:
     - X_boxes: list of boxes representing the positions where the boat could have been at previous iteration
-    - azimuths: list of intervals corresponding to the azimuths linking the boat and every visible mark, ie compass measure + camera measure
+    - directions: list of intervals corresponding to the angle between the heading line of the boat and the line of sight to
+                   every visible mark, ie camera measure
     - pos_wanted_accuracy: float, precision of the frontier delimiting the areas where the boat can be
     - speed: interval, measure of speed of the boat
     - heading: interval, compass measure
@@ -54,7 +55,13 @@ def compute_all_positions(X_boxes, azimuths, pos_wanted_accuracy, speed, heading
 
     # First case: some marks are visible. We first compute a "static estimation" from the knowledge of the position of the boat
     # relatively to a buoy. At this step we do not take into account the knowledge of the position of the boat at precedent iteration.
-    if len(azimuths) != 0:            
+    if len(directions) != 0:   
+
+        # From the compass and camera measures, compute the azimuths of lines linking the boat and visible marks.
+        azimuths = []
+        for direction in directions:
+            azimuths.append(direction+heading)  
+
         # when at least one mark is detected, improve position estimation
         anonymised_marks, anonymised_angles, anonymised_distances = anonymise_measures(landmarks, azimuths, range_of_vision)        
         inner_boxes, outer_boxes, frontier_boxes = compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angles, pos_wanted_accuracy)
@@ -192,10 +199,9 @@ def sub_speed(data):
 
 
 def sub_directions(data):
-    global marks_directions, azimuth_accuracy
+    global marks_directions, direction_accuracy
     directions = eval(data.data)
     marks_directions = map(lambda x: Interval(x).inflate(direction_accuracy), directions)
-
 
 
 def sub_state(data):
@@ -257,7 +263,6 @@ def run():
 
     # Initialising variables
     boat_possible_positions = [search_field]
-    # cv2.namedWindow("Possible positions", cv2.WINDOW_NORMAL)
     marks_directions = []
     speed = Interval(0,100)
     heading = Interval(-pi,pi)

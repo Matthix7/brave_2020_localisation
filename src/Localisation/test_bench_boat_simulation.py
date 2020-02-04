@@ -31,16 +31,15 @@ def evolX(X, u):
 	return dX
 
 
-def getAzimuths(X, landmarks):
+def getDirections(X, landmarks):
 	"""Returns the bearing for the designated landmark."""
 	x, y = X[0, 0], X[1, 0]
-	azimuths = []
+	directions = []
 	for landmark in landmarks:
 		xl, yl = landmark[0], landmark[1]        
 		camera_measure = sawtooth(atan2(yl-y, xl-x) - X[2,0])
-		compass_measure = X[2,0]
-		azimuths.append(camera_measure+compass_measure)  #Interval(camera_measure+compass_measure-accuracy, camera_measure+compass_measure+accuracy))
-	return azimuths
+		directions.append(camera_measure)  
+	return directions
 
 
 def inRange(X, landmarks, perceptionAngle, visionRange):
@@ -145,7 +144,7 @@ def run():
 		pub_speed.publish(Float32(data=boat_speed))
 
 		spotted = inRange(X, landmarks, angle_of_perception, range_of_vision)
-		marks_directions = getAzimuths(X, spotted) 
+		marks_directions = getDirections(X, spotted) 
 
 		pub_buoys.publish(String(data=str(marks_directions)))
 
