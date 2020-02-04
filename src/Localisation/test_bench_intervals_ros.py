@@ -37,18 +37,22 @@ from gps_converter import get_local_coordinates
 #########################   IA computation functions     #########################################
 
 
-def compute_all_positions(X_boxes, directions, pos_wanted_accuracy, speed, heading, lateral_speed, field, landmarks, range_of_vision, dt):
+def compute_all_positions(X_boxes, landmarks, directions, speed, heading, pos_wanted_accuracy, lateral_speed, field, range_of_vision, dt):
     """
     Based on Interval Analysis methods, computes all the positions where the boat can possibly be.
 
     Inputs:
     - X_boxes: list of boxes representing the positions where the boat could have been at previous iteration
+    - landmarks: list of lists of float, coordinates of every landmark in the local frame
     - directions: list of intervals corresponding to the angle between the heading line of the boat and the line of sight to
                    every visible mark, ie camera measure
-    - pos_wanted_accuracy: float, precision of the frontier delimiting the areas where the boat can be
     - speed: interval, measure of speed of the boat
     - heading: interval, compass measure
-    ... TO BE CONTINUED
+    - pos_wanted_accuracy: float, precision of the frontier delimiting the areas where the boat can be
+    - lateral_speed: float, maximum lateral speed not basically taken into account into Dubin model
+    - field: interval vector, field of research, from which the boat must never escape
+    - range_of_vision: float, maximum distance at which a mark can be detected
+    - dt: float, integration step
     """
 
     ### Static part ###
@@ -63,6 +67,8 @@ def compute_all_positions(X_boxes, directions, pos_wanted_accuracy, speed, headi
             azimuths.append(direction+heading)  
 
         # when at least one mark is detected, improve position estimation
+        # the line below associates each measure successively to each landmark to check wether this association is possible or not
+        # in the function compute_boxes (see below)
         anonymised_marks, anonymised_angles, anonymised_distances = anonymise_measures(landmarks, azimuths, range_of_vision)        
         inner_boxes, outer_boxes, frontier_boxes = compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angles, pos_wanted_accuracy)
         static_estimations = inner_boxes + frontier_boxes
@@ -79,7 +85,7 @@ def compute_all_positions(X_boxes, directions, pos_wanted_accuracy, speed, headi
     # Noise modelisation: lateral movements
     lat_moves = Interval(0.).inflate(lateral_speed)
 
-    # Modelisation of the movement of the boat: noisy Dubins model. Approximations are contained in the noise.
+    # Modelisation of the movement of the boat: noisy Dubin model. Approximations are contained in the noise.
     # The positions where the boat can possibly be are represented by rectangles of different sizes.
     # From this model, we can move the boxes and increase their sizes to take into account the movement of the boat
     # between two iterations.
@@ -118,16 +124,20 @@ def compute_all_positions(X_boxes, directions, pos_wanted_accuracy, speed, headi
             intersection_box = field & dynamic_box
             if not intersection_box.is_empty():
                 X_boxes.append(intersection_box)
+    # List of boxes containing all possible positions of the boat
     return X_boxes
 
 
 
+
 def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angles, pos_wanted_accuracy):
-    # Set constraints 
+
+    ### Definition of the constraints
     separators = []
     for i in range(len(anonymised_marks)):
         seps =[]
         n = len(anonymised_marks[i])
+        # Set constraints for each possible association (mark, distance, azimuth). Most of them will result in no solution.
         for m,d,alpha in zip(anonymised_marks[i], anonymised_distances[n*i:n*(i+1)], anonymised_angles[n*i:n*(i+1)]):
             sep = SepPolarXY(d, alpha)
             fforw = Function("v1", "v2", "(%f-v1;%f-v2)" %(m[0], m[1]))
@@ -139,6 +149,7 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
         sep.q = 0      # How many measures can be considered as outliers. Here we want 3 correct measures.
         separators.append(sep)
     
+    ### Compute all the boxes that comply with the constraints
     inner_boxes, outer_boxes, frontier_boxes = [], [], []
     for sep in separators:
         # Compute all possible positions. Factor 4 in accuracy is due to bissections effects.
