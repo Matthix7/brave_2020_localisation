@@ -89,7 +89,7 @@ def run():
 	dt = rospy.get_param('integration_step', 0.2)            
 
 	# Initial state of the boat
-	Xinit = array([[2], [2], [pi/2], [0.1]])
+	Xinit = array([[-1], [-3], [pi/2], [0.1]])
 
 	# Landmarks
 	landmarks = []
