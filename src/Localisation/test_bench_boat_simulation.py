@@ -64,6 +64,11 @@ def sub_operator(data):
 	rotation_command = data.x
 
 
+def sub_landmarks(data):
+	global speed_command, rotation_command
+	speed_command = data.y
+	rotation_command = data.x
+
 
 
 
@@ -86,7 +91,7 @@ def run():
 	dt = rospy.get_param('integration_step', 0.2)            
 
 	# Initial state of the boat
-	Xinit = array([[30], [30], [pi/2], [0.1]])
+	Xinit = array([[2], [2], [pi/2], [0.1]])
 
 	# Landmarks
 	landmarks = [[35, 70], [75,95], [25,120]]
@@ -104,6 +109,7 @@ def run():
 	pub_buoys = rospy.Publisher("buoys_directions", String, queue_size = 2)
 	pub_boat = rospy.Publisher("state_truth", String, queue_size = 2)
 	rospy.Subscriber("commands", Vector3, sub_operator)
+	rospy.Subscriber("local_landmarks_coordinates", String, sub_landmarks)
 
 	# Initialising variables
 	X = Xinit

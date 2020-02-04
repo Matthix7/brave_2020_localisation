@@ -29,8 +29,9 @@ from itertools import permutations
 from time import time, sleep
 import cv2
 
-
 from std_msgs.msg import Float32, String
+
+from gps_converter import get_local_coordinates
 
 ##################################################################################################
 #########################   IA computation functions     #########################################
@@ -170,6 +171,7 @@ def sub_state(data):
 
 
 def run():
+    rospy.init_node("interval_localiser")
     global marks_directions, speed, heading, heading_accuracy, direction_accuracy, speed_accuracy, real_boat_state_vector
 ##################################################################################################
 #########################         Setup section          #########################################
@@ -178,10 +180,8 @@ def run():
     dt = rospy.get_param('integration_step', 0.2)
 
     # Field of research
-    field_x_low = rospy.get_param('field_x_low', -60.)
-    field_x_high = rospy.get_param('field_x_high', 130.)
-    field_y_low = rospy.get_param('field_y_low', 0.)
-    field_y_high = rospy.get_param('field_y_high', 230.)
+    base_map, field_limits, landmarks = get_local_coordinates()
+    field_x_low, field_x_high, field_y_low, field_y_high  = field_limits
 
     search_field = IntervalVector([[field_x_low, field_x_high], [field_y_low, field_y_high]])
     
@@ -200,9 +200,6 @@ def run():
     pos_wanted_accuracy = rospy.get_param('pos_wanted_accuracy', 0.3)
     
        
-    # Landmarks
-    landmarks = [[35, 70], [75,95], [25,120]]
-    
 
     print "######## INIT ##############"
     print "Integration step = ", dt
@@ -228,10 +225,10 @@ def run():
     sleep(2)
 ##################################################################################################
 #########################      ROS initialisation        #########################################
-    rospy.init_node("interval_localiser")
 
 
     pub_positions = rospy.Publisher("boat_possible_positions", String, queue_size = 2)
+    pub_local_landmarks = rospy.Publisher("local_landmarks_coordinates", String, queue_size = 2)
     rospy.Subscriber("buoys_directions", String, sub_directions)
     rospy.Subscriber("heading", Float32, sub_heading)
     rospy.Subscriber("speed", Float32, sub_speed)
@@ -272,7 +269,8 @@ def run():
                                                              pos_wanted_accuracy)
 
        
-
+        pub_positions.publish(String(data=str(possible_positions)))
+        pub_local_landmarks.publish(String(data=str(landmarks)))
 
 ##################################################################################################
 ############################    Drawing     ############################################    
