@@ -194,7 +194,7 @@ def get_local_coordinates():
         key = cv2.waitKey(0) & 0xFF
     cv2.destroyWindow("base_map")
     return base_map_original, (origin_px, dx_global/dx_pixel, dy_global/dy_pixel),\
-           (map_x_low, map_x_high, map_y_low, map_y_high), local_marks
+           (map_x_low, map_x_high, map_y_low, map_y_high), origin, local_marks
 
 
 

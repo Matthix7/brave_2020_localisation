@@ -38,19 +38,57 @@ from gps_converter import get_local_coordinates
 
 
 def compute_all_positions(X_boxes, azimuths, pos_wanted_accuracy, speed, heading, lateral_speed, field, landmarks, range_of_vision, dt):
+    """
+    Based on Interval Analysis methods, computes all the positions where the boat can possibly be.
+
+    Inputs:
+    - X_boxes: list of boxes representing the positions where the boat could have been at previous iteration
+    - azimuths: list of intervals corresponding to the azimuths linking the boat and every visible mark, ie compass measure + camera measure
+    - pos_wanted_accuracy: float, precision of the frontier delimiting the areas where the boat can be
+    - speed: interval, measure of speed of the boat
+    - heading: interval, compass measure
+    ... TO BE CONTINUED
+    """
+
+    ### Static part ###
+
+    # First case: some marks are visible. We first compute a "static estimation" from the knowledge of the position of the boat
+    # relatively to a buoy. At this step we do not take into account the knowledge of the position of the boat at precedent iteration.
     if len(azimuths) != 0:            
         # when at least one mark is detected, improve position estimation
         anonymised_marks, anonymised_angles, anonymised_distances = anonymise_measures(landmarks, azimuths, range_of_vision)        
         inner_boxes, outer_boxes, frontier_boxes = compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angles, pos_wanted_accuracy)
         static_estimations = inner_boxes + frontier_boxes
+    
+    # Second case: no mark is currently visible. Then the only thing we "staticly" know is that the boat is in the field of research.
     else:
         static_estimations = [field]
     
+
+
+
+    ### Dynamic part ###
+
+    # Noise modelisation: lateral movements
     lat_moves = Interval(0.).inflate(lateral_speed)
+
+    # Modelisation of the movement of the boat: noisy Dubins model. Approximations are contained in the noise.
+    # The positions where the boat can possibly be are represented by rectangles of different sizes.
+    # From this model, we can move the boxes and increase their sizes to take into account the movement of the boat
+    # between two iterations.
 
     f_evol = Function("x[2]", "(x[0] + %f*(%s*cos(%s) + %s*sin(%s)), x[1] + %f*(%s*sin(%s) + %s*cos(%s)))"%(2*(dt, str(speed), str(heading), str(lat_moves), str(heading))))
     dynamic_estimations = [f_evol.eval_vector(X_box) for X_box in X_boxes]
     
+
+
+
+    ### Fusion of static and dynamic parts ###
+
+    # The position of the boat must be simultaneously:
+    #       - in the field of research
+    #       - compatible with current observations
+    #       - compatible with the position of the boat at the previous iteration
     # possible positions = field & static estimation & dynamic estimation
     X_boxes = []
     
@@ -59,12 +97,12 @@ def compute_all_positions(X_boxes, azimuths, pos_wanted_accuracy, speed, heading
     print
     
     if len(static_estimations) > 1: # meaning at least one mark is detected
-        dynamic_union = dynamic_estimations[0]  # then we can afford to loose some precision on dynamics given
+        dynamic_union = dynamic_estimations[0]      # then we can afford to loose some precision on dynamics given
         for dynamic_box in dynamic_estimations[1:]: # that static estimations are better, in order to reduce computing time
-            dynamic_union |= dynamic_box
+            dynamic_union |= dynamic_box    # union         ## can be improved to keep knowledge of possible different areas
     
         for static_box in static_estimations:
-            intersection_box = field & dynamic_union & static_box
+            intersection_box = field & dynamic_union & static_box  # intersection
             if not intersection_box.is_empty():
                 X_boxes.append(intersection_box)
                 
@@ -180,7 +218,7 @@ def run():
     dt = rospy.get_param('integration_step', 0.2)
 
     # Field of research
-    base_map, pixel_map_data, field_limits, landmarks = get_local_coordinates()
+    base_map, pixel_map_data, field_limits, origin_utm, landmarks = get_local_coordinates()
     field_x_low, field_x_high, field_y_low, field_y_high  = field_limits
     origin_px, x_scale, y_scale = pixel_map_data   #location of the origin in the matrix, conversion m/px
 
