@@ -305,7 +305,7 @@ def run():
         vibes.axisLimits(field_x_low, field_x_high, field_y_low, field_y_high)   
         rospy.Subscriber("state_truth", String, sub_state)
 
-
+    # cv2.namedWindow("Test_no_display", cv2.WINDOW_NORMAL)
     while not rospy.is_shutdown():
         
         # 1st interval function
@@ -324,6 +324,8 @@ def run():
                                                              search_field , 
                                                              pos_wanted_accuracy)
 
+        # cv2.imshow("Test_no_display", cv2.resize(binary_map,(480,360)))
+        # cv2.waitKey(1)
 
         pub_positions.publish(String(data=str(possible_positions)))
         pub_local_landmarks.publish(String(data=str(landmarks)))
