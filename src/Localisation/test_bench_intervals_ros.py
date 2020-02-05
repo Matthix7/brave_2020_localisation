@@ -140,8 +140,8 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
         # Set constraints for each possible association (mark, distance, azimuth). Most of them will result in no solution.
         for m,d,alpha in zip(anonymised_marks[i], anonymised_distances[n*i:n*(i+1)], anonymised_angles[n*i:n*(i+1)]):
             sep = SepPolarXY(d, alpha)
-            fforw = Function("v1", "v2", "(%f-v1;%f-v2)" %(m[0], m[1]))
-            fback = Function("p1", "p2", "(%f-p1;%f-p2)" %(m[0], m[1]))
+            fforw = Function("v1", "v2", "(%s-v1;%s-v2)" %(str(m[0]), str(m[1])))
+            fback = Function("p1", "p2", "(%s-p1;%s-p2)" %(str(m[0]), str(m[1])))
             sep = SepTransform(sep, fback, fforw)
             seps.append(sep)
             
@@ -234,9 +234,15 @@ def run():
     # integration step
     dt = rospy.get_param('integration_step', 0.2)
     display = rospy.get_param('display', False)
+    mark_position_accuracy = rospy.get_param('mark_position_accuracy', 5)        # Accuracy on marks positions
 
     # Field of research
-    base_map, pixel_map_data, field_limits, origin_utm, landmarks = get_local_coordinates(display)
+    base_map, pixel_map_data, field_limits, origin_utm, landmarks_local = get_local_coordinates(display)
+
+    landmarks = []
+    for mark in landmarks_local:
+        landmarks.append([Interval(mark[0]).inflate(mark_position_accuracy), Interval(mark[1]).inflate(mark_position_accuracy)])
+
     field_x_low, field_x_high, field_y_low, field_y_high  = field_limits
     origin_px, x_scale, y_scale = pixel_map_data   #location of the origin in the matrix, conversion m/px
 
@@ -328,7 +334,7 @@ def run():
         # cv2.waitKey(1)
 
         pub_positions.publish(String(data=str(possible_positions)))
-        pub_local_landmarks.publish(String(data=str(landmarks)))
+        pub_local_landmarks.publish(String(data=str(landmarks_local)))
 
 ##################################################################################################
 ############################    Drawing     ############################################    
@@ -353,7 +359,7 @@ def run():
             vibes.drawCircle(X[0,0], X[1,0], 1*scale, 'blue[black]') 
             for b in marks_directions:
                 vibes.drawPie((X[0,0],X[1,0]), (0.,range_of_vision), (X[2,0]+b[0],X[2,0]+b[1]), color='black',use_radian=True)             
-            for m in landmarks:
+            for m in landmarks_local:
                 vibes.drawCircle(m[0], m[1], 1*scale, 'yellow[black]')  
 
         # if display:

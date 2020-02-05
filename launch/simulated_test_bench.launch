@@ -31,6 +31,10 @@
 
 
 
+<!-- Set the accuracy on the positions of marks-->
+    <arg name="mark_position_accuracy" default="10." />
+    <param name="mark_position_accuracy" type="double" value="$(arg mark_position_accuracy)" />
+
 
 <!-- Set the accuracies of the different sensors (angles in degrees)-->
     <arg name="heading_accuracy" default="5." />
