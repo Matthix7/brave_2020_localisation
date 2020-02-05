@@ -2,6 +2,8 @@
 <launch>
 
     <node name="interval_localiser" pkg="brave_2020_localisation" type="test_bench_intervals_ros.py" output='screen' />
+    <node name="mark_detection" pkg="brave_2020_localisation" type="detectionBuoy.py" output='screen' />
+    <node name="imu" pkg="brave_2020_localisation" type="IMU_filter.py" output='screen' />
 
 
 <!-- Interactive display-->

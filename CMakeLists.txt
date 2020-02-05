@@ -148,9 +148,6 @@ include_directories(
 
 
 #add_executable(acquisition_image_2 src/Artificial_Vision/acquisition_image_2.cpp)
-add_executable(test_vision src/Artificial_Vision/test_vision.cpp)
-add_executable(lebars src/Artificial_Vision/lebars.cpp)
-add_executable(lebars_modified src/Artificial_Vision/lebars_modified.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -171,9 +168,6 @@ add_executable(lebars_modified src/Artificial_Vision/lebars_modified.cpp)
 
 
 #target_link_libraries(acquisition_image_2 ${catkin_LIBRARIES})
-target_link_libraries(test_vision ${catkin_LIBRARIES} ${OpenCV_LIBS})
-target_link_libraries(lebars ${catkin_LIBRARIES} ${OpenCV_LIBS})
-target_link_libraries(lebars_modified ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
 ## Install ##
