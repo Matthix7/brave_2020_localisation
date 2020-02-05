@@ -282,7 +282,7 @@ def run():
     # Initialising variables
     boat_possible_positions = [search_field]
     marks_directions = []
-    speed = Interval(0,100)
+    speed = Interval(0,20)
     heading = Interval(-pi,pi)
     real_boat_state_vector = array([[0,0,0,0]]).T
     sleep(2)
