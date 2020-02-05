@@ -265,6 +265,7 @@ def run():
        
 
     print "\n######## INIT ##############"
+    print
     print "Integration step = ", dt
     print "Search field = ", search_field
     print "Heading acuracy = ", heading_accuracy

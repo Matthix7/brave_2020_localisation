@@ -31,9 +31,24 @@
 
 
 
+
+<!--     Choose wanted accuracy so that the number of boxes does not exceed what can be computed during integration step.-->
+
 <!-- Set the accuracy on the positions of marks-->
     <arg name="mark_position_accuracy" default="10." />
     <param name="mark_position_accuracy" type="double" value="$(arg mark_position_accuracy)" />
+
+
+<!-- integration step for dynamics estimation-->
+    <arg name="integration_step" default="0.2" />
+    <param name="integration_step" type="double" value="$(arg integration_step)" />
+
+
+<!-- Accuracy on positioning-->
+    <arg name="pos_wanted_accuracy" default="3." />
+    <param name="pos_wanted_accuracy" type="double" value="$(arg pos_wanted_accuracy)" />
+
+
 
 
 <!-- Set the accuracies of the different sensors (angles in degrees)-->
@@ -57,17 +72,6 @@
 <!-- Model approximation-->
     <arg name="max_lateral_speed" default="0.5" />
     <param name="max_lateral_speed" type="double" value="$(arg max_lateral_speed)" />
-
-
-<!-- Accuracy on positioning-->
-    <arg name="pos_wanted_accuracy" default="0.3" />
-    <param name="pos_wanted_accuracy" type="double" value="$(arg pos_wanted_accuracy)" />
-
-
-<!-- integration step for dynamics estimation-->
-    <arg name="integration_step" default="0.2" />
-    <param name="integration_step" type="double" value="$(arg integration_step)" />
-
 
 
 

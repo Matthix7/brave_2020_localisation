@@ -61,6 +61,7 @@ def run():
 
     initRudder = 0.0
     initSail = 0.0
+    rudder, sail = initRudder, initSail
 
     rudder_sensibility = 0.005
 
