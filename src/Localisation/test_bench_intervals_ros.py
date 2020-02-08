@@ -255,7 +255,7 @@ def run():
 
     landmarks = []
     for mark in landmarks_local:
-        landmarks.append([Interval(mark[0]).inflate(mark_position_accuracy), Interval(mark[1]).inflate(mark_position_accuracy)])
+        landmarks.append(IntervalVector([[mark[0]]*2,[mark[1]]*2]).inflate(mark_position_accuracy))
 
     field_x_low, field_x_high, field_y_low, field_y_high  = field_limits
     origin_px, x_scale, y_scale = pixel_map_data   #location of the origin in the matrix, conversion m/px
