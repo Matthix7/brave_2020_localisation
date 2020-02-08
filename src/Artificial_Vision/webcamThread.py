@@ -26,7 +26,7 @@ class WebVideoStream:
         package_path = r.get_path('brave_2020_localisation')
 
         # initialize the camera and stream
-        self.camera = cv2.VideoCapture(0)
+        self.camera = cv2.VideoCapture("/dev/video2")
         self.resolution = resolution
         self.scale_factor = tan(0.398)/(resolution[0]*203.55/640)   #Camera scale factor, rad/pixel
 

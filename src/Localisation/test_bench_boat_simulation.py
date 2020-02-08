@@ -89,7 +89,7 @@ def run():
 	dt = rospy.get_param('integration_step', 0.2)            
 
 	# Initial state of the boat
-	Xinit = array([[-1], [-3], [pi/2], [0.1]])
+	Xinit = array([[-1], [3], [pi/2], [0.1]])
 
 	# Landmarks
 	landmarks = []
@@ -140,7 +140,7 @@ def run():
 		boat_speed = X[3,0] + uniform(-speed_accuracy, speed_accuracy)
 		boat_heading = X[2,0] + uniform(-heading_accuracy, heading_accuracy)
 
-		pub_heading.publish(Float32(data=boat_heading))
+		pub_heading.publish(Float32(data=pi/2-boat_heading))
 		pub_speed.publish(Float32(data=boat_speed))
 
 		spotted = inRange(X, landmarks, angle_of_perception, range_of_vision)

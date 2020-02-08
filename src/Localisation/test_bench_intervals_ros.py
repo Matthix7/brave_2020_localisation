@@ -22,6 +22,7 @@ from vibes import *
 
 from roblib import *
 
+import numpy as np
 from numpy import pi, array, asarray, zeros, ones, uint8, arange
 from math import factorial
 import random
@@ -53,12 +54,17 @@ def compute_all_positions(X_boxes, landmarks, directions, speed, heading, pos_wa
     - field: interval vector, field of research, from which the boat must never escape
     - range_of_vision: float, maximum distance at which a mark can be detected
     - dt: float, integration step
+
+    Returns:
+    - The list of all boxes [X_Interval, Y_Interval] in which the boat can be.
     """
 
     ### Static part ###
 
     # First case: some marks are visible. We first compute a "static estimation" from the knowledge of the position of the boat
     # relatively to a buoy. At this step we do not take into account the knowledge of the position of the boat at precedent iteration.
+    # To sum up: when at least one mark is seen, we compute boxes. When no mark is visible, we only move the previously computed ones 
+    # according to the state equation.
     if len(directions) != 0:   
 
         # From the compass and camera measures, compute the azimuths of lines linking the boat and visible marks.
@@ -131,6 +137,14 @@ def compute_all_positions(X_boxes, landmarks, directions, speed, heading, pos_wa
 
 
 def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angles, pos_wanted_accuracy):
+    """
+    Static part of the function above. Computes all the positions that correspond to the measures.
+    Called only when a mark is detected.
+
+    Inputs:
+    - field: IntervalVector, the field of research from which the boat cannot escape
+    - anonymised_marks: list of [Interval,Interval]
+    """
 
     ### Definition of the constraints
     separators = []
@@ -149,7 +163,7 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
         sep.q = 0      # How many measures can be considered as outliers. Here we want 3 correct measures.
         separators.append(sep)
     
-    ### Compute all the boxes that comply with the constraints
+    ### Compute all the boxes that comply with the constraints, given a frontier accuracy (recursive bisections of boxes)
     inner_boxes, outer_boxes, frontier_boxes = [], [], []
     for sep in separators:
         # Compute all possible positions. Factor 4 in accuracy is due to bissections effects.
@@ -201,7 +215,7 @@ def anonymise_measures(landmarks, azimuths, range_of_vision):
 #############################   ROS callblacks     ###############################################
 def sub_heading(data):
     global heading, heading_accuracy
-    heading = Interval(data.data).inflate(heading_accuracy)
+    heading = Interval(sawtooth(pi/2-data.data)).inflate(heading_accuracy) # conversion to local frame ENU.
 
 
 def sub_speed(data):
@@ -282,7 +296,7 @@ def run():
     # Initialising variables
     boat_possible_positions = [search_field]
     marks_directions = []
-    speed = Interval(0,20)
+    speed = Interval(1,3)
     heading = Interval(-pi,pi)
     real_boat_state_vector = array([[0,0,0,0]]).T
     sleep(2)
@@ -376,6 +390,10 @@ def run():
             cv2.circle(display_map, 
                        (x_boat_px, y_boat_px), 
                        5, (0,0,255), thickness=5)
+            cv2.line(display_map,
+                     (x_boat_px, y_boat_px), 
+                     (int(x_boat_px+15*cos((heading[0]+heading[1])/2)), int(y_boat_px-15*sin((heading[0]+heading[1])/2))),
+                     (0,0,255), thickness = 3)
 
             cv2.imshow("position_map", display_map)
             cv2.waitKey(1)

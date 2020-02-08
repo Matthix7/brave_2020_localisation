@@ -7,6 +7,7 @@ import rospkg
 from std_msgs.msg import Float32
 import serial
 import matplotlib.pyplot as plt
+from numpy import pi
 
 class Imu_9dof_m0():
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
         yaw = imu.getter()
-        pub_yaw.publish(Float32(data=yaw))
+        pub_yaw.publish(Float32(data=pi*yaw/180))
         rate.sleep()
 
     imu.ser.close()

@@ -119,7 +119,8 @@ def detectBuoy(image, roll, dataCam):
             bearings.append(headingBuoy)
 
 
-    return bearings, image
+    return bearings[:1], image     ## WHILE DETECTION NOT RELIABLE
+    # return bearings, image
 
 
 
