@@ -38,7 +38,6 @@ def run():
 
             #show the frame
             cv2.imshow('Webcam',image)
-            time.sleep(0.03)
 
         key = cv2.waitKey(1) & 0xFF
         if key == 27 or key == ord('q'):
@@ -55,7 +54,9 @@ def run():
 
         rate.sleep()
 
+    vs.stop()
     cv2.destroyAllWindows()
+    
 
 
 

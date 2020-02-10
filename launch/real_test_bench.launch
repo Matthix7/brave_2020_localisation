@@ -75,5 +75,9 @@
 
 
 
+<!-- Rosbag record-->
+    <arg name="record" default="false" /> 
+    <node name="record" pkg="rosbag" type="record" args="record -o $(find brave_2020_localisation)/rosbags/ -a" if="$(arg record)"/>
+
 
 </launch>

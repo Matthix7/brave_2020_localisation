@@ -24,7 +24,6 @@ from roblib import *
 
 import numpy as np
 from numpy import pi, array, asarray, zeros, ones, uint8, arange
-from math import factorial
 import random
 from itertools import permutations
 from time import time, sleep
@@ -143,7 +142,15 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
 
     Inputs:
     - field: IntervalVector, the field of research from which the boat cannot escape
-    - anonymised_marks: list of [Interval,Interval]
+    - anonymised_marks: list of IntervalVectors containing multiple times the coordinates of the marks
+    - anonymised_distances: list of Intervals containing multiple times the distances between the boat and the detected marks
+    - anonymised_angles: list of Intervals containing multiple times the bearings meaured by the camera
+    - pos_wanted_accuracy: float, size of the frontier boxes
+
+    anonymised_marks/distances/angles come from teh function anonymise_measures.
+
+    Returns:
+    - the boxes that satisfy the measures, the ones that do not, and the frontier between inner and outer.
     """
 
     ### Definition of the constraints
@@ -176,6 +183,24 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
 
 
 def compute_gathered_positions(inner_boxes, field, pos_wanted_accuracy):    
+    """
+    From the list of boxes in which the boat can be, computes the center of the different possible areas and the shapes of their
+    bounding rectangles. Can be upgraded to return more moments of the diffent areas.
+
+    Inputs:
+    - inner_boxes: list of IntervalVectors, boxes that satisfy the measures and movements of the boat
+    - field: IntervalVector, the field of research from which the boat cannont escape
+    - pos_wanted_accuracy: float, size of the frontier boxes. Corresponds to the resolution of hte binary map.
+
+    Returns:
+    - binary_map: binary image, 255 if the boat can be in the pixel, else 0. Resolution = pos_wanted_accuracy, borders are those of the field
+    - possible_positions: 3d-array,
+    [[[x1,y1], [x_size1, y_size1]],
+        ...
+     [[xn,yn], [x_sizen, y_sizen]]] , where [xi,yi] and [x_sizei,y_sizei] are respectively the center and shape of the bounding rectangle of the ith area
+     of the binary map (found with cv2.findContours).
+    """
+
     # Create a binary map of the positions where the boat can be
     field_x_low, field_y_low = field[0][0], field[1][0]
     field_x_high, field_y_high = field[0][1], field[1][1]
@@ -202,8 +227,11 @@ def compute_gathered_positions(inner_boxes, field, pos_wanted_accuracy):
 
 
 def anonymise_measures(landmarks, azimuths, range_of_vision):
+    """
+    Function that assigns each combination of marks to every combination of measures. Necessary to test all associations
+    and find the possible ones in function compute_boxes.
+    """
     anonymised_marks = list(permutations(landmarks, len(azimuths)))
-    random.shuffle(anonymised_marks)
     anonymised_angles = azimuths*len(anonymised_marks)
     anonymised_distances = [Interval(0,range_of_vision)]*len(azimuths) *len(anonymised_marks)
     return anonymised_marks, anonymised_angles, anonymised_distances 
