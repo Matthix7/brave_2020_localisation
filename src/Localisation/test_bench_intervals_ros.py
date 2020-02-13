@@ -220,7 +220,7 @@ def compute_gathered_positions(inner_boxes, field, pos_wanted_accuracy):
         x,y,w,h  = cv2.boundingRect(cnt)
         # x, y, w, h = int(x), int(y), int(w), int(h)            
 #        cv2.rectangle(binary_map, (x,y),(x+w,y+h),(255,0,0),1)        
-        centre_real = ((x + w/2)*pos_wanted_accuracy + field_x_low ,(y + h/2)*pos_wanted_accuracy + field_y_low) #A TESTER
+        centre_real = ((x + w/2)*pos_wanted_accuracy + field_x_low ,(y + h/2)*pos_wanted_accuracy + field_y_low)
         shape_real = (w*pos_wanted_accuracy, h*pos_wanted_accuracy)
         possible_positions.append([centre_real, shape_real])    
     return binary_map, possible_positions
@@ -377,7 +377,7 @@ def run():
         # cv2.imshow("Test_no_display", cv2.resize(binary_map,(480,360)))
         # cv2.waitKey(1)
 
-        pub_positions.publish(String(data=str(possible_positions)))   #A TESTER (cf plus haut)
+        pub_positions.publish(String(data=str(possible_positions))) # still in local frame
         pub_local_landmarks.publish(String(data=str(landmarks_local)))
 
 ##################################################################################################
