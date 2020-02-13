@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-####### USING https://www.pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/ ###########
-
 
 # import the necessary packages
 import rospy
@@ -32,8 +30,8 @@ def run():
     r = rospkg.RosPack()
     package_path = r.get_path('brave_2020_localisation')
 
-    camera = cv2.VideoCapture(0)
-    # camera = cv2.VideoCapture("/dev/video2")
+    # camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture("/dev/video2")
 
     scale_factor, resolution = getScaleFactor()
 

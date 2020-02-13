@@ -102,7 +102,7 @@ def marks_acquisition(display):
         confirm = False
 
         while not confirm and not rospy.is_shutdown():
-            base_map_original = cv2.imread(package_path+'/src/Localisation/base_map/base_nautique_map.png')
+            base_map_original = cv2.imread(package_path+'/src/Localisation/base_map/base_map.png')
             base_map = draw_axis(base_map_original)
 
             nb_clicks = 0

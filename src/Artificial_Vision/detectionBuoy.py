@@ -52,8 +52,8 @@ def detectBuoy(image, roll, dataCam):
 
             bearings.append(headingBuoy)
 
-
-    return bearings[:1], image     ## WHILE DETECTION NOT RELIABLE
+    return [], image
+    # return bearings[:1], image     ## WHILE DETECTION NOT RELIABLE
     # return bearings, image
 
 
@@ -98,7 +98,10 @@ def run():
 
     rate = rospy.Rate(5)
 
-    # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
+    display = rospy.get_param('display', False)
+
+    if display:
+        cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
 
     rospy.Subscriber("camera/image_calibrated", Image, image_callback)
     rospy.Subscriber("camera/camera_info", Vector3, image_info_callback)
@@ -117,8 +120,9 @@ def run():
         pub_bearings.publish(buoys_bearings)
 
         #show the frame
-        cv2.imshow('Webcam',image)
-        cv2.waitKey(1)
+        if display:
+            cv2.imshow('Webcam',cv2.resize(image,(240,180)))
+            cv2.waitKey(1)
 
         rate.sleep()
 
