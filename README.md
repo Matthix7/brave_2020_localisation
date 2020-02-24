@@ -7,7 +7,7 @@ NOT FULLY USABLE YET.
 Many localisation methods, while being highly efficient, rely on the use of landmarks that are supposed to be identifiable by the robot. This is often possible using various shapes, colors, codes...etc. But in the case of a boat in the ocean, often the marks are limited to buoys. And if you do not have many colors for your buoys, or if you want to have an algorithm that will not fail you because of a bad identification of your mark, another method seems preferable.  
 As an alternative solution for localisation issues, we propose here to use the theory of intervals to delimit the areas where the sailboat/robot can possibly be given what it can see from its cameras. (see [this paper](https://www.ensta-bretagne.fr/jaulin/intervalcourse.pdf) for further information)  
 The principle is simple to understand. Given an initial area for the position of the robot:
--either it cannot see a buoy, then at each time increment the area where the boat can possibly be is computed from the previous area accordingly with the heading and speed of the boat and the uncertainties coming from the model and the environment. This results in a bigger and shifted area.
+- either it cannot see a buoy, then at each time increment the area where the boat can possibly be is computed from the previous area accordingly with the heading and speed of the boat and the uncertainties coming from the model and the environment. This results in a bigger and shifted area.
 - either it can see a buoy, then it is pretty close to it (depends on the image quality), oriented accordingly with the heading measure, and in an area that is compatible with its previous possible area. This results in a smaller area.
 
 ## What is needed
