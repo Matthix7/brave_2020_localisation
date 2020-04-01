@@ -158,7 +158,8 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
     for i in range(len(anonymised_marks)):
         seps =[]
         n = len(anonymised_marks[i])
-        # Set constraints for each possible association (mark, distance, azimuth). Most of them will result in no solution.
+        # Set constraints for each possible association (mark, distance, azimuth). 
+        # Most of them will result in no solution when several marks are seen at the same time.
         for m,d,alpha in zip(anonymised_marks[i], anonymised_distances[n*i:n*(i+1)], anonymised_angles[n*i:n*(i+1)]):
             sep = SepPolarXY(d, alpha)
             fforw = Function("v1", "v2", "(%s-v1;%s-v2)" %(str(m[0]), str(m[1])))
@@ -167,7 +168,7 @@ def compute_boxes(field, anonymised_marks, anonymised_distances, anonymised_angl
             seps.append(sep)
             
         sep = SepQInterProjF(seps)
-        sep.q = 0      # How many measures can be considered as outliers. Here we want 3 correct measures.
+        sep.q = 0      # How many measures can be considered as outliers. Here we consider all measures to be correct.
         separators.append(sep)
     
     ### Compute all the boxes that comply with the constraints, given a frontier accuracy (recursive bisections of boxes)
@@ -424,7 +425,7 @@ def run():
                      (int(x_boat_px+15*cos((heading[0]+heading[1])/2)), int(y_boat_px-15*sin((heading[0]+heading[1])/2))),
                      (0,0,255), thickness = 3)
 
-            cv2.imshow("position_map", cv2.resize(display_map,(240,180)))
+            cv2.imshow("position_map", cv2.resize(display_map,(480,360)))
             cv2.waitKey(1)
 
         rate.sleep()
