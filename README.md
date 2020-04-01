@@ -1,7 +1,17 @@
 # brave_2020_localisation
 Software to localise a robot (without GPS) using only cameras and known marks, without needing to identify them.
 Initially designed for Brave sailboat from ENSTA Bretagne. Measures of heading and velocity highly recommanded.
-NOT FULLY USABLE YET.
+
+## Dependencies
+- Python 2.7
+- ROS Melodic
+- opencv 3.2.0
+- pyibex
+- vibes
+- rospkg
+- pyautogui
+- utm
+- itertools
 
 ## Motivation
 Many localisation methods, while being highly efficient, rely on the use of landmarks that are supposed to be identifiable by the robot. This is often possible using various shapes, colors, codes...etc. But in the case of a boat in the ocean, often the marks are limited to buoys. And if you do not have many colors for your buoys, or if you want to have an algorithm that will not fail you because of a bad identification of your mark, another method seems preferable.  
@@ -30,6 +40,13 @@ Note: this usage is not recommended for live use in a robot, better for visualis
 - Modify directly `/launch/real_test_bench.launch`, and then use `roslaunch brave_2020_localisation real_test_bench.launch`.
 - The algorithm will begin looping without display.
 Note: a later update will allow to save the inputs of interactive usage for a mission without monitor.
+
+## Example
+Once you have correctly installed the package in a ROS workspace and installed the required *Python* libraries, you can run `roslaunch brave_2020_localisation example.launch` in your terminal. This will launch a simulation of a robot and the localisation software with its display.  
+- When you run the command above, an *OpenCV* window should pop up with the *base_map* image. This image corresponds to the field of research that will be used for the localisation task. 
+- If you have not changed the image, you should see two red dots marked "1" and "2". These are the locations of the *virtual* landmarks used for this simulation. Double-click on "1" and then "2" (lines should be printed in your terminal). This creates the link between these pixels and the GPS coordinates that appear in *example.launch*.
+- Hit *Enter* twice to confirm.
+- You are now entering the simulation. The landmarks are where you double-clicked before and the robot is the moving red dot (with a line that indicates its heading). You control the moves of the robot **in your terminal** using the arrows of your keyboard (acceleration and rotation).
 
 ## Brave: controllers & low-level software
 * https://github.com/QuentinCar/Brave
