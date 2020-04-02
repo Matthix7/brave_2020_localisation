@@ -46,7 +46,9 @@ Once you have correctly installed the package in a ROS workspace and installed t
 - When you run the command above, an *OpenCV* window should pop up with the *base_map* image. This image corresponds to the field of research that will be used for the localisation task. 
 - If you have not changed the image, you should see two red dots marked "1" and "2". These are the locations of the *virtual* landmarks used for this simulation. Double-click on "1" and then "2" (lines should be printed in your terminal). This creates the link between these pixels and the GPS coordinates that appear in *example.launch*.
 - Hit *Enter* twice to confirm.
-- You are now entering the simulation. The landmarks are where you double-clicked before and the robot is the moving red dot (with a line that indicates its heading). You control the moves of the robot **in your terminal** using the arrows of your keyboard (acceleration and rotation).
+- You are now entering the simulation. The landmarks are where you double-clicked before and the robot is the moving red dot (with a line that indicates its heading). You can control the moves of the robot **in your terminal** using the arrows of your keyboard (acceleration and rotation).  
+
+ Initially, the only location knowledge that we have is that the robot is in the field (*ie* the image). While moving the robot fast enough or making it *see* a landmark (ie looking in the direction of the landmark and close enough to it), you will see one or several bright areas and the rest of the image quite dark. The bright areas are all the estimated possible positions of the robot computed by the localisation software (*ie* independant from the simulation). These positions are all the locations compatible with the moves and measures of the robot, given the parameters in the launchfile.
 
 ## Brave: controllers & low-level software
 * https://github.com/QuentinCar/Brave
