@@ -1,7 +1,6 @@
 # brave_2020_localisation
 Software to localise a robot (without GPS) using only cameras and known marks, without needing to identify them.
 Initially designed for Brave sailboat from ENSTA Bretagne. Measures of heading and velocity highly recommanded.
-Updated repository: https://github.com/Matthix7/brave_2020_localisation
 
 ## Dependencies
 - Python 2.7
