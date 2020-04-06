@@ -10,6 +10,7 @@ Initially designed for Brave sailboat from ENSTA Bretagne. Measures of heading a
 - vibes
 - rospkg
 - pyautogui
+- pynput
 - utm
 - itertools
 
